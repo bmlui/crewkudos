@@ -1,0 +1,120 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String               @id @default(uuid())
+  email         String               @unique
+  emailVerified DateTime?
+  accounts      Account[] // For NextAuth login
+  sessions      Session[] // For NextAuth session
+  orgLinks      UserOnOrganization[] // Each record = 1 org + role
+  createdAt     DateTime             @default(now())
+}
+
+model Organization {
+  id          String               @id @default(uuid())
+  name        String
+  users       UserOnOrganization[] // Users in this org
+  departments Department[]
+  kudos       Kudos[]
+  createdAt   DateTime             @default(now())
+}
+
+model UserOnOrganization {
+  id             String          @id @default(uuid())
+  firstName      String
+  lastName       String
+  userId         String
+  organizationId String
+  role           Role
+  departmentId   String?
+  sentKudos      Kudos[]         @relation("Sender")
+  receivedKudos  KudoRecipient[] @relation("Recipient")
+  createdAt      DateTime        @default(now())
+  user           User            @relation(fields: [userId], references: [id])
+  organization   Organization    @relation(fields: [organizationId], references: [id])
+  department     Department?     @relation(fields: [departmentId], references: [id])
+
+  @@unique([userId, organizationId]) // one role/org combo per user
+}
+
+model Department {
+  id             String               @id @default(uuid())
+  name           String
+  organizationId String
+  organization   Organization         @relation(fields: [organizationId], references: [id])
+  users          UserOnOrganization[]
+  createdAt      DateTime             @default(now())
+
+  @@unique([name, organizationId]) // no duplicate dept names in same org
+}
+
+model Kudos {
+  id             String             @id @default(uuid())
+  message        String
+  senderId       String
+  sender         UserOnOrganization @relation("Sender", fields: [senderId], references: [id])
+  organizationId String
+  organization   Organization       @relation(fields: [organizationId], references: [id])
+  recipients     KudoRecipient[]
+  createdAt      DateTime           @default(now())
+}
+
+model KudoRecipient {
+  id          String             @id @default(uuid())
+  kudoId      String
+  kudo        Kudos              @relation(fields: [kudoId], references: [id])
+  userOnOrgId String
+  userOnOrg   UserOnOrganization @relation("Recipient", fields: [userOnOrgId], references: [id])
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  EMPLOYEE
+}
+
+//
+// Optional: Add these if you're using NextAuth.js for auth.
+//
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
