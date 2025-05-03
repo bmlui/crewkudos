@@ -1,5 +1,4 @@
-// app/api/org/[id]/kudos/route.ts
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
 import { getKudosForOrg } from "@/lib/kudos/getKudosForOrg";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
@@ -23,7 +22,6 @@ export async function GET(req: Request, context: { params: { id: string } }) {
   return NextResponse.json(data);
 }
 
-
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_SERVER_HOST,
   port: Number(process.env.EMAIL_SERVER_PORT),
@@ -35,15 +33,11 @@ const transporter = nodemailer.createTransport({
 });
 
 export async function POST(req: NextRequest, context: { params: { id: string } }) {
-  const { userId } = await auth();
-  const { id: organizationId } = await context.params;
-
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const clerk = await clerkClient();
-  const clerkUser = await clerk.users.getUser(userId);
-  const email = clerkUser.emailAddresses?.[0]?.emailAddress;
-  if (!email) return NextResponse.json({ error: "User email not found" }, { status: 401 });
+  const session = await auth(); // ✅ Modern Auth.js v5
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session.user.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { id: organizationId } = context.params;
 
   const body = await req.json();
   const { message, recipients }: { message: string; recipients: string[] } = body;
@@ -51,29 +45,24 @@ export async function POST(req: NextRequest, context: { params: { id: string } }
   if (!message || !recipients?.length)
     return NextResponse.json({ error: "Missing message or recipients" }, { status: 400 });
 
-  const user = await prisma.user.findUnique({
-    where: { email },
-    select: { id: true },
-  });
-  if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
   const sender = await prisma.userOnOrganization.findUnique({
     where: {
       userId_organizationId: {
-        userId: user.id,
+        userId: session.user.id,
         organizationId,
       },
     },
     select: {
       id: true,
-      firstName: true, lastName: true,
-      user: { select: {  email: true } },
+      firstName: true,
+      lastName: true,
+      user: { select: { email: true } },
     },
   });
   if (!sender) return NextResponse.json({ error: "Sender not in org" }, { status: 403 });
 
   try {
-    // Create kudos in DB
     const createdKudo = await prisma.kudos.create({
       data: {
         message,
@@ -87,14 +76,9 @@ export async function POST(req: NextRequest, context: { params: { id: string } }
       },
     });
 
-    // Get recipients
     const recipientUsers = await prisma.userOnOrganization.findMany({
-      where: {
-        id: { in: recipients },
-      },
-      include: {
-        user: { select: { email: true } }
-      },
+      where: { id: { in: recipients } },
+      include: { user: { select: { email: true } } },
     });
 
     const allRecipientEmails = recipientUsers
@@ -106,25 +90,24 @@ export async function POST(req: NextRequest, context: { params: { id: string } }
       .map((r) => `${r.firstName} ${r.lastName}`)
       .join(", ");
 
-    // Construct kudos link
-    const baseUrl = process.env.APP_BASE_URL || "https://your-app.com";
+    const baseUrl = process.env.APP_BASE_URL || "localhost:3000";
     const kudosLink = `${baseUrl}/dashboard/org/${organizationId}/kudos/${createdKudo.id}`;
 
-    // Send email
     const mailOptions = {
       from: process.env.EMAIL_FROM,
       to: sender.user.email,
+      replyTo: sender.user.email,
       bcc: allRecipientEmails.filter((e) => e !== sender.user.email),
       subject: `🎉 Kudos from ${sender.firstName} ${sender.lastName}`,
       text: `Hi ${recipientNames},\n\n${sender.firstName} sent you the following kudos:\n\n"${message}"\n\nView Kudos: ${kudosLink}\n\n– Crew Kudos Team`,
       html: `
-      <p style="font-size: 14px;">Hi ${recipientNames},</p>
-      <p style="font-size: 14px;"><strong>${sender.firstName} ${sender.lastName}</strong> sent you kudos:</p>
-      <blockquote style="border-left: 2px solid #ccc; padding-left: 10px; color: #333; font-size: 14px;">
-        ${message}
-      </blockquote>
-      <p style="font-size: 14px;"><a href="${kudosLink}" style="color: #1d4ed8; text-decoration: underline; font-size: 14px;">Click here to view it in Crew Kudos</a></p>
-      <p style="font-size: 14px;">– <em>Crew Kudos Team</em></p>
+        <p style="font-size: 14px;">Hi ${recipientNames},</p>
+        <p style="font-size: 14px;"><strong>${sender.firstName} ${sender.lastName}</strong> sent you kudos:</p>
+        <blockquote style="border-left: 2px solid #ccc; padding-left: 10px; color: #333; font-size: 14px;">
+          ${message}
+        </blockquote>
+        <p style="font-size: 14px;"><a href="${kudosLink}" style="color: #1d4ed8; text-decoration: underline; font-size: 14px;">Click here to view it in Crew Kudos</a></p>
+        <p style="font-size: 14px;">– <em>Crew Kudos Team</em></p>
       `,
     };
 

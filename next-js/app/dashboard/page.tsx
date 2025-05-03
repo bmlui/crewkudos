@@ -1,25 +1,31 @@
 // app/dashboard/page.tsx
-import { auth, currentUser } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
+import { auth } from "@/lib/auth";
 import OrgList from "./components/OrgList";
 import KudosList from "./components/KudosList";
 
 export default async function DashboardPage() {
-  const { userId } = await auth();
-
-  const user = await currentUser();
+  const session = await auth();
+  if (!session || !session.user) {
+    return (
+      <main className="p-6 max-w-4xl mx-auto">
+        <h1 className="text-3xl font-bold">Unauthorized</h1>
+        <p className="text-gray-500">
+          You need to be logged in to access this page.
+        </p>
+      </main>
+    );
+  }
 
   return (
     <main className="p-6 max-w-4xl mx-auto space-y-10">
       <div>
         <h1 className="text-3xl font-bold mb-2">Welcome back 👋</h1>
         <p className="text-gray-600">
-          Logged in as{" "}
-          <strong>{user?.emailAddresses?.[0]?.emailAddress}</strong>
+          Logged in as <strong>{session.user.email}</strong>
         </p>
       </div>
-      <OrgList email={user?.emailAddresses?.[0]?.emailAddress || ""} />
-      <KudosList email={user?.emailAddresses?.[0]?.emailAddress || ""} />
+      <OrgList id={session.user.id || ""} />
+      <KudosList id={session.user.id || ""} />
     </main>
   );
 }

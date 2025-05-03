@@ -1,21 +1,21 @@
-// app/dashboard/org/[id]/page.tsx
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import KudosFeed from "@/app/dashboard/org/components/KudosFeed";
 import SendKudos from "../components/SendKudos";
+import { Suspense } from "react";
 
 export default async function OrgPage({
   params,
 }: {
   params: { orgId: string };
 }) {
-  const { userId } = await auth();
-  if (!userId) return new Response("Forbidden", { status: 403 });
+  const session = await auth();
+  const userEmail = (session as any)?.user?.email;
 
-  const user = await currentUser();
-  const userEmail = user?.emailAddresses?.[0]?.emailAddress;
-  if (!userEmail) return new Response("Forbidden", { status: 403 });
+  if (!userEmail) {
+    return new Response("Forbidden", { status: 403 });
+  }
 
   const { orgId } = await params;
 
@@ -50,6 +50,7 @@ export default async function OrgPage({
   if (!userLink) {
     return new Response("Forbidden", { status: 403 });
   }
+
   const departmentName = userLink?.department?.name || "No department assigned";
 
   return (
@@ -61,6 +62,7 @@ export default async function OrgPage({
         senderName={`${userLink?.firstName ?? ""} ${userLink?.lastName ?? ""}`}
         myDeptName={userLink?.department?.name}
       />
+
       <KudosFeed
         orgId={orgId}
         {...(userLink?.department?.id && {

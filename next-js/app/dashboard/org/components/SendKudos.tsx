@@ -125,7 +125,7 @@ export default function SendKudos({
 
               <label className="block mb-1 font-medium">Message:</label>
               <textarea
-                className="w-full border rounded border-black p-2 h-38 resize-y"
+                className="w-full border rounded border-black p-2 h-38 focus:outline-none  focus:ring-1 resize-y"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 required

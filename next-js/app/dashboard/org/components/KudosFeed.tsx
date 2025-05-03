@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+import Loading from "@/app/components/Loading";
+
 export default function KudosFeed({
   orgId,
   defaultDeptId,
@@ -12,6 +14,7 @@ export default function KudosFeed({
   defaultDeptName?: string;
 }) {
   const [kudos, setKudos] = useState<any[]>([]);
+  const [loadingKudos, setLoadingKudos] = useState(false);
   const [departments, setDepartments] = useState<
     { id: string; name: string }[]
   >([]);
@@ -38,24 +41,30 @@ export default function KudosFeed({
     if (!isReady) return;
 
     const load = async () => {
-      const params = new URLSearchParams({
-        take: String(take),
-        skip: String(page * take),
-      });
-      if (department) params.set("departmentId", department);
+      setLoadingKudos(true);
+      try {
+        const params = new URLSearchParams({
+          take: String(take),
+          skip: String(page * take),
+        });
+        if (department) params.set("departmentId", department);
 
-      const res = await fetch(`/api/org/${orgId}/kudos?` + params.toString());
-      const data = await res.json();
+        const res = await fetch(`/api/org/${orgId}/kudos?` + params.toString());
+        const data = await res.json();
 
-      setHasMore(data.length === take);
+        setHasMore(data.length === take);
 
-      setKudos((prev) => {
-        const existingIds = new Set(prev.map((k) => k.id));
-        const newKudos = data.filter((k: any) => !existingIds.has(k.id));
-        return [...prev, ...newKudos];
-      });
+        setKudos((prev) => {
+          const existingIds = new Set(prev.map((k) => k.id));
+          const newKudos = data.filter((k: any) => !existingIds.has(k.id));
+          return [...prev, ...newKudos];
+        });
+      } catch (err) {
+        console.error("Failed to load kudos", err);
+      } finally {
+        setLoadingKudos(false);
+      }
     };
-
     load();
   }, [page, department, isReady]);
 
@@ -167,6 +176,7 @@ export default function KudosFeed({
           </li>
         ))}
       </ul>
+      {loadingKudos && <Loading />}
 
       {hasMore ? (
         <button

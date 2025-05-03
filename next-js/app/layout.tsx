@@ -2,14 +2,12 @@
 import "./globals.css";
 
 import React from "react";
-import { ClerkProvider } from "@clerk/nextjs";
+import { SessionProvider } from "next-auth/react";
 import TopBar from "./components/TopBar";
-import TopBarLoader from "./components/TopBarLoader"; // Ensure this path is correct
 
 function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
-      <TopBarLoader />
       <TopBar />
       {children}
     </>
@@ -24,9 +22,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <ClerkProvider>
+        <SessionProvider>
           <AppLayout>{children}</AppLayout>
-        </ClerkProvider>
+        </SessionProvider>
       </body>
     </html>
   );

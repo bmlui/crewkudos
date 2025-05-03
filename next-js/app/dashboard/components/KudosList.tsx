@@ -1,7 +1,7 @@
 import { getRecentKudosForUser } from "@/lib/kudos/getRecentKudosForUser";
 
-export default async function KudosList({ email }: { email: string }) {
-  const kudos = await getRecentKudosForUser(email);
+export default async function KudosList({ id }: { id: string }) {
+  const kudos = await getRecentKudosForUser(id);
   if (!kudos.length) {
     return (
       <section>

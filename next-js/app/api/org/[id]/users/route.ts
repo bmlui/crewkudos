@@ -1,5 +1,5 @@
 // app/api/org/[id]/users/route.ts
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import {auth} from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
@@ -7,42 +7,13 @@ export async function GET(
   req: Request,
   context: { params: { id: string } }
 ) {
-  const { id: orgId } = await context.params;
-  const { userId } = await auth();
+  const session = await auth(); // ✅ Modern Auth.js v5
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session.user.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { id: orgId } = context.params;
 
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  // Fetch user email from Clerk
-  const clerk = await clerkClient();
-  const clerkUser = await clerk.users.getUser(userId);
-  const email = clerkUser.emailAddresses?.[0]?.emailAddress;
-
-  if (!email) {
-    return NextResponse.json({ error: "Email not found" }, { status: 401 });
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { email },
-    select: { id: true },
-  });
-
-  if (!user) {
-    return NextResponse.json({ error: "User not found" }, { status: 404 });
-  }
-
-  const userInOrg = await prisma.userOnOrganization.findFirst({
-    where: {
-      userId: user.id,
-      organizationId: orgId,
-    },
-  });
-
-  if (!userInOrg) {
-    return NextResponse.json({ error: "User not part of the organization" }, { status: 403 });
-  }
-
+  // Fetch users and check if the requesting user is part of the organization in a single query
   const users = await prisma.userOnOrganization.findMany({
     where: { organizationId: orgId },
     select: {
@@ -52,8 +23,21 @@ export async function GET(
       department: {
         select: { name: true },
       },
+      userId: true, // Include userId to verify the requesting user
     },
   });
+
+  // Check if the requesting user is part of the organization
+  const isUserPartOfOrg = users.some((u) => u.userId === session?.user?.id);
+
+  if (!isUserPartOfOrg) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  if (!users || users.length === 0) {
+    return NextResponse.json({ error: "No users found" }, { status: 404 });
+  }
+  if (!users) return NextResponse.json({ error: "No users found" }, { status: 404 });
 
   const formatted = users.map((u) => ({
     id: u.id,
