@@ -16,3 +16,7 @@ export async function getOrgsForUser(id: string) {
     },
   });
 }
+
+export type OrgsForUser = NonNullable<
+  Awaited<ReturnType<typeof getOrgsForUser>>
+>;

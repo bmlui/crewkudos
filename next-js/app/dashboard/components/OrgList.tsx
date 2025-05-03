@@ -1,5 +1,6 @@
 // app/dashboard/components/OrgList.tsx
 import { getOrgsForUser } from "@/lib/orgs/getOrgsForUser";
+import type { OrgsForUser } from "@/lib/orgs/getOrgsForUser";
 import Link from "next/link";
 
 type Props = {
@@ -22,7 +23,7 @@ export default async function OrgList({ id }: Props) {
     <section className="mb-10">
       <h2 className="text-xl font-semibold mb-3">Your Organizations</h2>
       <ul className="space-y-2">
-        {user.orgLinks.map((link: any) => (
+        {user.orgLinks.map((link: OrgsForUser["orgLinks"][number]) => (
           <li key={link.organization.id} className="">
             <Link
               href={`/dashboard/org/${link.organization.id}`}

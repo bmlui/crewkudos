@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 
-export async function GET(req: Request, context: { params: { id: string } }) {
+export async function GET(req: Request, context: { params: Promise<{ id: string }> }) {
   const { id: organizationId } = await context.params;
 
   const { searchParams } = new URL(req.url);
@@ -32,12 +32,12 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-export async function POST(req: NextRequest, context: { params: { id: string } }) {
+export async function POST(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const session = await auth(); // ✅ Modern Auth.js v5
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!session.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!session.user.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const { id: organizationId } = context.params;
+  const { id: organizationId } = await context.params;
 
   const body = await req.json();
   const { message, recipients }: { message: string; recipients: string[] } = body;

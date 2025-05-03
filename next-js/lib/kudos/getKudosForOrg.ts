@@ -71,3 +71,7 @@ export async function getKudosForOrg({
     skip,
   });
 }
+
+export type KudosForOrg = NonNullable<
+  Awaited<ReturnType<typeof getKudosForOrg>>
+>;

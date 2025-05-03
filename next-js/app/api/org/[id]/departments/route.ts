@@ -1,8 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
-export async function GET(req: Request, context: any) {
+export async function GET(
+  req: Request,
+  context: { params: Promise<{ id: string }> }
+) {
   const { id: organizationId } = await context.params;
+
   const departments = await prisma.department.findMany({
     where: { organizationId },
     select: {

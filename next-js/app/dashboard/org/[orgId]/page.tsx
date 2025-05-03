@@ -3,15 +3,14 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import KudosFeed from "@/app/dashboard/org/components/KudosFeed";
 import SendKudos from "../components/SendKudos";
-import { Suspense } from "react";
 
 export default async function OrgPage({
   params,
 }: {
-  params: { orgId: string };
+  params: Promise<{ orgId: string }>;
 }) {
   const session = await auth();
-  const userEmail = (session as any)?.user?.email;
+  const userEmail = session?.user?.email;
 
   if (!userEmail) {
     return new Response("Forbidden", { status: 403 });

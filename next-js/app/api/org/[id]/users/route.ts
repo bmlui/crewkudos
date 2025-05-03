@@ -5,13 +5,13 @@ import { NextResponse } from "next/server";
 
 export async function GET(
   req: Request,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   const session = await auth(); // ✅ Modern Auth.js v5
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!session.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!session.user.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const { id: orgId } = context.params;
+  const { id: orgId } = await context.params;
 
   // Fetch users and check if the requesting user is part of the organization in a single query
   const users = await prisma.userOnOrganization.findMany({
@@ -28,7 +28,7 @@ export async function GET(
   });
 
   // Check if the requesting user is part of the organization
-  const isUserPartOfOrg = users.some((u) => u.userId === session?.user?.id);
+  const isUserPartOfOrg = users.some((u: { userId: string | undefined; }) => u.userId === session?.user?.id);
 
   if (!isUserPartOfOrg) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });

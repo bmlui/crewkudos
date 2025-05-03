@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { KudosForOrg } from "@/lib/kudos/getKudosForOrg";
 
 import Loading from "@/app/components/Loading";
 
@@ -13,7 +14,7 @@ export default function KudosFeed({
   defaultDeptId?: string;
   defaultDeptName?: string;
 }) {
-  const [kudos, setKudos] = useState<any[]>([]);
+  const [kudos, setKudos] = useState<KudosForOrg[number][]>([]);
   const [loadingKudos, setLoadingKudos] = useState(false);
   const [departments, setDepartments] = useState<
     { id: string; name: string }[]
@@ -56,7 +57,9 @@ export default function KudosFeed({
 
         setKudos((prev) => {
           const existingIds = new Set(prev.map((k) => k.id));
-          const newKudos = data.filter((k: any) => !existingIds.has(k.id));
+          const newKudos = data.filter(
+            (k: KudosForOrg[number]) => !existingIds.has(k.id)
+          );
           return [...prev, ...newKudos];
         });
       } catch (err) {
@@ -66,7 +69,7 @@ export default function KudosFeed({
       }
     };
     load();
-  }, [page, department, isReady]);
+  }, [page, department, isReady, orgId]);
 
   // Lazy load departments
   const loadDepartments = async () => {
@@ -133,20 +136,25 @@ export default function KudosFeed({
         {kudos.map((kudo) => (
           <li key={kudo.id} className="bg-white rounded-lg shadow border p-4">
             <div className="text-md text-black font-black">
-              {kudo.recipients.map((recipient: any, index: number) => {
-                const r = recipient.userOnOrg;
-                return (
-                  <span key={recipient.id}>
-                    <strong>
-                      {r.firstName} {r.lastName}
-                    </strong>{" "}
-                    <span className="italic">
-                      ({r.department?.name || "No Department"})
+              {kudo.recipients.map(
+                (
+                  recipient: KudosForOrg[number]["recipients"][number],
+                  index: number
+                ) => {
+                  const r = recipient.userOnOrg;
+                  return (
+                    <span key={recipient.id}>
+                      <strong>
+                        {r.firstName} {r.lastName}
+                      </strong>{" "}
+                      <span className="italic">
+                        ({r.department?.name || "No Department"})
+                      </span>
+                      {index < kudo.recipients.length - 1 && ", "}
                     </span>
-                    {index < kudo.recipients.length - 1 && ", "}
-                  </span>
-                );
-              })}
+                  );
+                }
+              )}
             </div>
             <div className="text-sm text-gray-600">
               From{" "}

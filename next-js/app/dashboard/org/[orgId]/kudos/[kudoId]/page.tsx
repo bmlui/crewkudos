@@ -2,41 +2,19 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 
-interface KudosPageProps {
-  params: {
-    orgId: string;
-    kudoId: string;
-  };
-}
+export default async function KudosPage({
+  params,
+}: {
+  params: Promise<{ orgId: string; kudoId: string }>;
+}) {
+  const { orgId, kudoId } = await params;
 
-export default async function KudosPage({ params }: KudosPageProps) {
-  const { orgId, kudoId } = params;
-
-  const kudo = await prisma.kudos.findUnique({
-    where: { id: kudoId },
-    include: {
-      sender: {
-        include: {
-          user: true,
-          department: true,
-        },
-      },
-      recipients: {
-        include: {
-          userOnOrg: {
-            include: {
-              user: true,
-              department: true,
-            },
-          },
-        },
-      },
-    },
-  });
+  const kudo = await getKudo(kudoId);
 
   if (!kudo || kudo.organizationId !== orgId) {
     return notFound();
   }
+  type KudoUniq = NonNullable<Awaited<ReturnType<typeof getKudo>>>;
 
   return (
     <div className="mt-6 max-w-3xl mx-auto px-4">
@@ -50,20 +28,22 @@ export default async function KudosPage({ params }: KudosPageProps) {
       <ul className="space-y-4">
         <li className="bg-white rounded-lg shadow border p-4">
           <div className="text-md text-black font-black">
-            {kudo.recipients.map((recipient, index) => {
-              const r = recipient.userOnOrg;
-              return (
-                <span key={recipient.id}>
-                  <strong>
-                    {r.firstName} {r.lastName}
-                  </strong>{" "}
-                  <span className="italic">
-                    ({r.department?.name || "No Department"})
+            {kudo.recipients.map(
+              (recipient: KudoUniq["recipients"][number], index: number) => {
+                const r = recipient.userOnOrg;
+                return (
+                  <span key={recipient.id}>
+                    <strong>
+                      {r.firstName} {r.lastName}
+                    </strong>{" "}
+                    <span className="italic">
+                      ({r.department?.name || "No Department"})
+                    </span>
+                    {index < kudo.recipients.length - 1 && ", "}
                   </span>
-                  {index < kudo.recipients.length - 1 && ", "}
-                </span>
-              );
-            })}
+                );
+              }
+            )}
           </div>
 
           <div className="text-sm text-gray-600">
@@ -95,4 +75,27 @@ export default async function KudosPage({ params }: KudosPageProps) {
       </ul>
     </div>
   );
+}
+
+async function getKudo(kudoId: string) {
+  return await prisma.kudos.findUnique({
+    where: { id: kudoId },
+    include: {
+      organization: true,
+      sender: {
+        include: {
+          department: true,
+        },
+      },
+      recipients: {
+        include: {
+          userOnOrg: {
+            include: {
+              department: true,
+            },
+          },
+        },
+      },
+    },
+  });
 }

@@ -1,12 +1,11 @@
 "use client";
 
 import { useSession, signIn, signOut } from "next-auth/react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 
 export default function TopBar() {
   const { data: session, status } = useSession();
-  const router = useRouter();
   const pathname = usePathname();
 
   const isSignedIn = status === "authenticated";

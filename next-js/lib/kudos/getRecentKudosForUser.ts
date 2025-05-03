@@ -49,3 +49,8 @@ export async function getRecentKudosForUser(id: string, take = 5) {
     take: take,
   });
 }
+
+export type KudosForUser = NonNullable<
+  Awaited<ReturnType<typeof getRecentKudosForUser>>
+>;
+

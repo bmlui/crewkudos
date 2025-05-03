@@ -1,4 +1,5 @@
 import { getRecentKudosForUser } from "@/lib/kudos/getRecentKudosForUser";
+import type { KudosForUser } from "@/lib/kudos/getRecentKudosForUser";
 
 export default async function KudosList({ id }: { id: string }) {
   const kudos = await getRecentKudosForUser(id);
@@ -19,7 +20,7 @@ export default async function KudosList({ id }: { id: string }) {
     <section>
       <h2 className="text-xl font-semibold mb-3">Recent Kudos You Received</h2>
       <ul className="space-y-4">
-        {kudos.map((kudo: any) => {
+        {kudos.map((kudo: KudosForUser[number]) => {
           const displayName = `${kudo.sender.firstName} ${kudo.sender.lastName}`;
 
           const departmentName = kudo.sender?.department?.name;

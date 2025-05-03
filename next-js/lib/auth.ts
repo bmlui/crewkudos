@@ -2,7 +2,7 @@
 
 import NextAuth from "next-auth";
 import type { NextAuthConfig } from "next-auth";
-import EmailProvider from "next-auth/providers/email";
+import Nodemailer from "next-auth/providers/nodemailer";
 import nodemailer from "nodemailer";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
@@ -11,7 +11,7 @@ import { prisma } from "@/lib/prisma";
 export const authConfig: NextAuthConfig = {
   adapter: PrismaAdapter(prisma),
   providers: [
-    EmailProvider({
+    Nodemailer({
       server: {
         host: process.env.EMAIL_SERVER_HOST,
         port: Number(process.env.EMAIL_SERVER_PORT),
