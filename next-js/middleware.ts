@@ -8,7 +8,7 @@ export const config = {
 
 export async function middleware(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.AUTH_SECRET });
-
+  console.log("Token in middleware:", token);
   const isLoggedIn = !!token;
 
   if (!isLoggedIn) {
