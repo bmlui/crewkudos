@@ -1,5 +1,5 @@
 // app/api/user/orgs/route.ts
-import { auth } from "@/lib/auth";
+import { auth } from "@/auth";
 import { getOrgsForUser } from "@/lib/orgs/getOrgsForUser";
 import { NextResponse } from "next/server";
 import type { OrgsForUser } from "@/lib/orgs/getOrgsForUser";

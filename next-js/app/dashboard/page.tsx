@@ -1,5 +1,5 @@
 // app/dashboard/page.tsx
-import { auth } from "@/lib/auth";
+import { auth } from "@/auth";
 import OrgList from "./components/OrgList";
 import KudosList from "./components/KudosList";
 

@@ -7,7 +7,12 @@ export const config = {
 };
 
 export async function middleware(req: NextRequest) {
-  const token = await getToken({ req, secret: process.env.AUTH_SECRET });
+  const isHttps =
+  req.headers.get("x-forwarded-proto") === "https" ||
+  req.nextUrl.protocol === "https:" ||
+  process.env.NODE_ENV === "production";
+  
+  const token = await getToken({ req, secureCookie: isHttps ,secret: process.env.AUTH_SECRET });
   console.log("Token in middleware:", token);
   const isLoggedIn = !!token;
 
