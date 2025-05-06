@@ -16,7 +16,7 @@ export default function KudosFeed({
 }) {
   const [kudos, setKudos] = useState<KudosForOrg[number][]>([]);
   const [loadingKudos, setLoadingKudos] = useState(false);
-  const [departments, setDepartments] = useState<
+  const [departmentsList, setDepartmentsList] = useState<
     { id: string; name: string }[]
   >([]);
   const [departmentsLoaded, setDepartmentsLoaded] = useState(false);
@@ -78,7 +78,7 @@ export default function KudosFeed({
     try {
       const res = await fetch(`/api/org/${orgId}/departments`);
       const data = await res.json();
-      setDepartments(data);
+      setDepartmentsList(data);
       setDepartmentsLoaded(true);
     } catch (err) {
       console.error("Failed to load departments", err);
@@ -92,7 +92,8 @@ export default function KudosFeed({
     department === undefined
       ? "All Departments"
       : departmentsLoaded
-      ? departments.find((d) => d.id === department)?.name ?? defaultDeptName
+      ? departmentsList.find((d) => d.id === department)?.name ??
+        defaultDeptName
       : defaultDeptName;
 
   return (
@@ -109,7 +110,6 @@ export default function KudosFeed({
           const value =
             e.target.value === "__ALL__" ? undefined : e.target.value;
           if (value === department) return; // No change
-          setDepartment(undefined); // Force refresh
           setTimeout(() => {
             setDepartment(value);
             setKudos([]);
@@ -125,7 +125,7 @@ export default function KudosFeed({
         {loadingDepartments && !departmentsLoaded && (
           <option disabled>Loading departments...</option>
         )}
-        {departments.map((dept) => (
+        {departmentsList.map((dept) => (
           <option key={dept.id} value={dept.id}>
             {dept.name}
           </option>

@@ -110,7 +110,7 @@ export default function SendKudos({
                 onChange={(selected) =>
                   setRecipients(selected as { label: string; value: string }[])
                 }
-                className="mb-3"
+                className=""
                 styles={{
                   control: (base, state) => ({
                     ...base,
@@ -120,10 +120,30 @@ export default function SendKudos({
                       borderColor: "black",
                     },
                   }),
+                  option: (base, { isDisabled }) => ({
+                    ...base,
+                    color: isDisabled ? "#ccc" : base.color,
+                    cursor: isDisabled ? "not-allowed" : "pointer",
+                  }),
                 }}
+                placeholder="Select recipients..."
+                isOptionDisabled={() => recipients.length >= 5}
               />
+              <p
+                className={`text-sm mt-2 text-right ${
+                  recipients.length > 3 ? "block" : "hidden"
+                } ${
+                  recipients.length === 5
+                    ? "text-red-600 font-semibold"
+                    : recipients.length >= 3
+                    ? "text-orange-500"
+                    : "text-gray-500 "
+                }`}
+              >
+                {recipients.length}/5 recipients
+              </p>
 
-              <label className="block mb-1 font-medium">Message:</label>
+              <label className="block mb-1 mt-3 font-medium">Message:</label>
               <textarea
                 className="w-full border rounded border-black p-2 h-38 focus:outline-none  focus:ring-1 resize-y"
                 value={message}

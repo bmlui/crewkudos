@@ -45,6 +45,18 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
   if (!message || !recipients?.length)
     return NextResponse.json({ error: "Missing message or recipients" }, { status: 400 });
 
+  if (message.length > 800) {
+    return NextResponse.json({ error: "Message too long" }, { status: 400 });
+  }
+
+  if (recipients.length > 5) {
+    return NextResponse.json({ error: "Too many recipients" }, { status: 400 });
+  }
+
+  const trimmedMessage = message.trim();
+  if (trimmedMessage.length <= 1) {
+    return NextResponse.json({ error: "Message too short" }, { status: 400 });
+  }
 
   const sender = await prisma.userOnOrganization.findUnique({
     where: {
@@ -65,7 +77,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
   try {
     const createdKudo = await prisma.kudos.create({
       data: {
-        message,
+        message: trimmedMessage,
         senderId: sender.id,
         organizationId,
         recipients: {
@@ -80,11 +92,27 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
       where: { id: { in: recipients } },
       include: { user: { select: { email: true } } },
     });
-
-    const allRecipientEmails = recipientUsers
-      .map((r) => r.user.email)
-      .filter(Boolean)
-      .concat(sender.user.email);
+//helper function to format email addresses
+    const formatAddress = (
+      first?: string | null,
+      last?: string | null,
+      email?: string | null,
+    ) => {
+      if (!email) return undefined;               // skip blanks
+      const name = [first, last].filter(Boolean).join(" ");
+      return name ? `"${name}" <${email}>` : email;
+    };
+    
+    // Build the To: list
+    const allRecipientAddrs = [
+      ...recipientUsers
+        .map(r => formatAddress(r.firstName, r.lastName, r.user.email))
+        .filter(Boolean),                         // drop undefineds
+      formatAddress(sender.firstName, sender.lastName, sender.user.email),
+    ]
+      // optional: deduplicate
+      .filter((addr, i, arr) => addr && arr.indexOf(addr) === i);
+    
 
     const recipientNames = recipientUsers
       .map((r) => `${r.firstName} ${r.lastName}`)
@@ -95,16 +123,16 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
 
     const mailOptions = {
       from: process.env.EMAIL_FROM,
-      to: sender.user.email,
+      to: allRecipientAddrs.join(", "),
       replyTo: sender.user.email,
-      bcc: allRecipientEmails.filter((e) => e !== sender.user.email),
+      cc: sender.user.email,
       subject: `🎉 Kudos from ${sender.firstName} ${sender.lastName}`,
-      text: `Hi ${recipientNames},\n\n${sender.firstName} sent you the following kudos:\n\n"${message}"\n\nView Kudos: ${kudosLink}\n\n– Crew Kudos Team`,
+      text: `Hi ${recipientNames},\n\n${sender.firstName} sent you the following kudos:\n\n"${trimmedMessage}"\n\nView Kudos: ${kudosLink}\n\n– Crew Kudos Team`,
       html: `
         <p style="font-size: 14px;">Hi ${recipientNames},</p>
         <p style="font-size: 14px;"><strong>${sender.firstName} ${sender.lastName}</strong> sent you kudos:</p>
         <blockquote style="border-left: 2px solid #ccc; padding-left: 10px; color: #333; font-size: 14px;">
-          ${message}
+          ${trimmedMessage}
         </blockquote>
         <p style="font-size: 14px;"><a href="${kudosLink}" style="color: #1d4ed8; text-decoration: underline; font-size: 14px;">Click here to view it in Crew Kudos</a></p>
         <p style="font-size: 14px;">– <em>Crew Kudos Team</em></p>
