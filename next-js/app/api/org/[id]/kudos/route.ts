@@ -3,7 +3,7 @@ import { getKudosForOrg } from "@/lib/kudos/getKudosForOrg";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import nodemailer from "nodemailer";
-import { Prisma } from "@prisma/client";
+
 
 export async function GET(req: Request, context: { params: Promise<{ id: string }> }) {
   const { id: organizationId } = await context.params;
@@ -88,14 +88,14 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
         },
       },
     });
-type RecipientUser = Prisma.UserOnOrganizationGetPayload<{
-  include: { user: { select: { email: true } } };
-}>;
+
 
     const recipientUsers = await prisma.userOnOrganization.findMany({
       where: { id: { in: recipients } },
       include: { user: { select: { email: true } } },
     });
+
+    type RecipientUser = (typeof recipientUsers)[number];
 //helper function to format email addresses
     const formatAddress = (
       first?: string | null,
