@@ -76,9 +76,10 @@ model KudoRecipient {
 }
 
 enum Role {
-  ADMIN
-  MANAGER
   EMPLOYEE
+  MANAGER
+  ADMIN
+  
 }
 
 //
