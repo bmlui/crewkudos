@@ -27,6 +27,7 @@ export async function GET(
     },
   });
 
+  type User = typeof users[number];
   // Check if the requesting user is part of the organization
   const isUserPartOfOrg = users.some((u: { userId: string | undefined; }) => u.userId === session?.user?.id);
 
@@ -39,7 +40,7 @@ export async function GET(
   }
   if (!users) return NextResponse.json({ error: "No users found" }, { status: 404 });
 
-  const formatted = users.map((u) => ({
+  const formatted = users.map((u: User) => ({
     id: u.id,
     name: `${u.firstName} ${u.lastName} (${u.department?.name || "No Dept"})`,
   }));
