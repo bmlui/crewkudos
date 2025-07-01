@@ -119,7 +119,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
     
 
     const recipientNames = recipientUsers
-      .map((r) => `${r.firstName} ${r.lastName}`)
+      .map((r: RecipientUser) => `${r.firstName} ${r.lastName}`)
       .join(", ");
 
     const baseUrl = process.env.APP_BASE_URL || "localhost:3000";
